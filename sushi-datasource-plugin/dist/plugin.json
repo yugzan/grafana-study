@@ -1,0 +1,23 @@
+{
+  "type": "datasource",
+  "name": "Sushi",
+  "id": "yugzan-sushi-datasource",
+  "metrics": true,
+  "annotations": false,
+  "alerting": false,
+  "info": {
+    "description": "sample of restful APIs datasoure plugin for grafana",
+    "author": {
+      "name": "yugzan",
+      "url": "http://yugzan.github.io/study.github.io/"
+    },
+    "keywords": ["sushi", "restful", "datasource"],
+    "version": "1.0.0",
+    "updated": "2016-12-07"
+  },
+
+  "dependencies": {
+    "grafanaVersion": "4.x.x",
+    "plugins": [ ]
+  }
+}
