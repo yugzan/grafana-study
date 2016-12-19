@@ -1,20 +1,20 @@
 //https://github.com/grafana/grafana/blob/master/public/app/core/services/backend_srv.ts
-//import _ from "lodash";
+// import _ from "lodash";
 import moment from "moment";
 
 class TequiniDatasource {
     //constructor() {}
     constructor(instanceSettings, $q, backendSrv, templateSrv) {
-
-        this.type = instanceSettings.type;
-        this.url = instanceSettings.url;
-        this.name = instanceSettings.name;
-        this.basicAuth = instanceSettings.basicAuth;
-        // console.log(new Buffer(this.basicAuth, 'base64').toString('hex'));
-
         this.q = $q;
         this.backendSrv = backendSrv;
         this.templateSrv = templateSrv;
+        this.type = instanceSettings.type;
+        this.url = instanceSettings.url;
+        this.name = instanceSettings.name;
+        this.basicAuth = window.atob(instanceSettings.basicAuth.replace('Basic ', ''));
+        var useropt = this.basicAuth.split(":");
+        this.user = useropt[0];
+        this.password = useropt[1];
     }
     query(options) {
         console.log("run query");
@@ -53,9 +53,9 @@ class TequiniDatasource {
         // }.bind(this));
         var out = this.q.all(allQueryPromise)
             .then(function(allResponse) {
-            console.log(this.transformResources(options ,allResponse) );
-            return this.transformResources(options , allResponse);
-        }.bind(this));
+                console.log(this.transformResources(options, allResponse));
+                return this.transformResources(options, allResponse);
+            }.bind(this));
 
         return out;
 
@@ -66,8 +66,8 @@ class TequiniDatasource {
         //     data: query,
         //     method: 'GET',
         //     headers: {
-        //         'X-Auth-Username': 'admin',
-        //         'X-Auth-Password': 'pass',
+        //         'X-Auth-Username': this.user,
+        //         'X-Auth-Password':  this.password,
         //         'Content-Type': 'application/json'
         //     }
         // }).then(response => {
@@ -85,14 +85,14 @@ class TequiniDatasource {
                 url: thisurl + '/api/devices/' + target.devices + '/sensors/' + target.sensors + '/data',
                 method: 'GET',
                 headers: {
-                    'X-Auth-Username': 'admin',
-                    'X-Auth-Password': 'pass',
+                    'X-Auth-Username': this.user,
+                    'X-Auth-Password': this.password,
                     'Content-Type': 'application/json'
                 }
             };
             console.log(o);
             options.push(o);
-        });
+        }.bind(this));
         return options;
     }
     getQueryDatas(Srv, options) {
@@ -101,31 +101,31 @@ class TequiniDatasource {
                 return response;
             });
     }
-    transformResources(options , allResponse){
-          var result = [];
-          _.each(allResponse, function(response, index) {
+    transformResources(options, allResponse) {
+        var result = [];
+        _.each(allResponse, function(response, index) {
             //var metrics = transformMetricData(response, options.targets[index], options.scopedVars);
             // result = result.concat(metrics);
-            console.log( options.targets[index].devices+'.'+options.targets[index].sensors );
-            result.push( this.transformDataPoints( options.targets[index].devices+'.'+options.targets[index].sensors, response) );
-          }.bind(this) );
+            console.log(options.targets[index].devices + '.' + options.targets[index].sensors);
+            result.push(this.transformDataPoints(options.targets[index].devices + '.' + options.targets[index].sensors, response));
+        }.bind(this));
 
-          console.log({data: result});
-          return {data: result};
+        console.log({ data: result });
+        return { data: result };
     }
-    transformDataPoints(target , data){
+    transformDataPoints(target, data) {
         var datapoints = [];
         //check value is not object
-        console.log(  typeof data.resources[0].value );
-        if( _.isObject( data.resources[0].value  ) ){
-            _.each( data.resources  ,function(objset , index){
-                    datapoints.push( [ objset.value.chilled_water_flow , moment(objset.at).valueOf()] );    
+        console.log(typeof data.resources[0].value);
+        if (_.isObject(data.resources[0].value)) {
+            _.each(data.resources, function(objset, index) {
+                datapoints.push([objset.value.chilled_water_flow, moment(objset.at).valueOf()]);
             });
             var tempModel = {
                 "target": target + ".chilled_water_flow", //opt.id  The field being queried for
                 "datapoints": datapoints
             };
-        }else{
+        } else {
             _.forEach(data.resources, function(opt) {
                 datapoints.push([opt.value, moment(opt.at).valueOf()]);
             });
@@ -134,7 +134,7 @@ class TequiniDatasource {
                 "datapoints": datapoints
             };
         }
-        return  tempModel;
+        return tempModel;
     }
 
     testDatasource() {
@@ -143,8 +143,8 @@ class TequiniDatasource {
                 method: 'GET',
                 url: this.url + '/api/devices',
                 headers: {
-                    'X-Auth-Username': 'admin',
-                    'X-Auth-Password': 'pass',
+                    'X-Auth-Username': this.user,
+                    'X-Auth-Password': this.password,
                     'Content-Type': 'application/json'
                 }
             };
@@ -176,8 +176,8 @@ class TequiniDatasource {
             data: interpolated,
             method: 'GET',
             headers: {
-                'X-Auth-Username': 'admin',
-                'X-Auth-Password': 'pass',
+                'X-Auth-Username': this.user,
+                'X-Auth-Password': this.password,
                 'Content-Type': 'application/json'
             }
         };
@@ -194,8 +194,8 @@ class TequiniDatasource {
             data: interpolated,
             method: 'GET',
             headers: {
-                'X-Auth-Username': 'admin',
-                'X-Auth-Password': 'pass',
+                'X-Auth-Username': this.user,
+                'X-Auth-Password': this.password,
                 'Content-Type': 'application/json'
             }
         };
