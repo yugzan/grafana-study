@@ -18,66 +18,42 @@ class TequiniDatasource {
     }
     query(options) {
         console.log("run query");
-        // console.log(options);
 
         var query = this.buildQueryParameters(options);
-        // console.log("query");
-        // console.log(query);
+
         query.targets = query.targets.filter(t => !t.hide);
         console.log("query.targets");
         console.log(query.targets);
-        //console.log(this.url + '/devices/' + options.targets[0].devices + '/sensors/' + options.targets[0].sensors);
+
+        //build url options 
+        var queries = this.buildQueryUrl(this.url, options.targets);
+        //build promise
+        var allQueryPromise = _.map(queries, function(queryIt) {
+            return this.getQueryDatas(this.backendSrv, queryIt);
+        }.bind(this));
+
+        return this.q.all(allQueryPromise).then(function(allResponse) {
+            return this.transformResources(options, allResponse);
+        }.bind(this));
+
 
         /*console.log(
             this.backendSrv.request(options).then(
                 response => {
-                    options.url = 'http://127.0.0.1:8080/api/devices/' + response.resources[0].id;
+                    options.url = this.url + '/api/devices/' + response.resources[0].id;
                     return this.backendSrv.request(options).then(resp => {
                         console.log(resp);
-                        return resp;
+                        //     if (resp.status === 200) {
+                        //         resp.data = this.transform_tequini(options.targets[0].target, response.data);
+                        //         return resp;
+                        //     }
                     });
                     // return this.backendSrv.'http://127.0.0.1:8080/api/devices/' + response.resources[0].id;
                 }
             ));*/
         //return [];
-        var queries = this.buildQueryUrl(this.url, options.targets);
-        //console.log( this.getQueryDatas(this.backendSrv, queries[0] ) ) ;
-        var allQueryPromise = _.map(queries, function(queryIt) {
-            //console.log(this.getQueryDatas(this.backendSrv, queryIt ) );
-            return this.getQueryDatas(this.backendSrv, queryIt);
-        }.bind(this));
+    }//query
 
-        // var allQueryPromise = _.map(queries, function(queryIt) {
-        //     return this.getQueryDatas(this.backendSrv, queryIt);
-        // //return this.performTimeSeriesQuery(query, start, end);
-        // }.bind(this));
-        var out = this.q.all(allQueryPromise)
-            .then(function(allResponse) {
-                console.log(this.transformResources(options, allResponse));
-                return this.transformResources(options, allResponse);
-            }.bind(this));
-
-        return out;
-
-        // console.log("query.getQueryDatas");
-
-        // var ajaxreq = this.backendSrv.datasourceRequest({
-        //     url: this.url + '/api/devices/' + options.targets[0].devices + '/sensors/' + options.targets[0].sensors + '/data',
-        //     data: query,
-        //     method: 'GET',
-        //     headers: {
-        //         'X-Auth-Username': this.user,
-        //         'X-Auth-Password':  this.password,
-        //         'Content-Type': 'application/json'
-        //     }
-        // }).then(response => {
-        //     if (response.status === 200) {
-        //         response.data = this.transform_tequini(options.targets[0].target, response.data);
-        //         return response;
-        //     }
-        // });
-        // return ajaxreq;
-    }
     buildQueryUrl(thisurl, targets) {
         var options = [];
         _.forEach(targets, function(target) {
@@ -109,8 +85,7 @@ class TequiniDatasource {
             console.log(options.targets[index].devices + '.' + options.targets[index].sensors);
             result.push(this.transformDataPoints(options.targets[index].devices + '.' + options.targets[index].sensors, response));
         }.bind(this));
-
-        console.log({ data: result });
+        // console.log({ data: result });
         return { data: result };
     }
     transformDataPoints(target, data) {
@@ -126,7 +101,7 @@ class TequiniDatasource {
                 "datapoints": datapoints
             };
         } else {
-            _.forEach(data.resources, function(opt) {
+            _.forEach(data.resources, opt => {
                 datapoints.push([opt.value, moment(opt.at).valueOf()]);
             });
             var tempModel = {
@@ -148,9 +123,7 @@ class TequiniDatasource {
                     'Content-Type': 'application/json'
                 }
             };
-            console.log(this.backendSrv);
             var datasourceRequest = this.backendSrv.datasourceRequest(options);
-
             return datasourceRequest.then(response => {
                 if (response.status === 200) {
                     return { status: "success", message: "Tequini datasource is working", title: "Success" };
@@ -203,37 +176,29 @@ class TequiniDatasource {
     }
     mapResultsToTextValue(result) {
         return _.map(result.data.resources, (opt) => {
-            // console.log(opt);
             return { text: opt.id, value: opt.name };
         });
     }
     buildQueryParameters(options) {
         //remove placeholder targets
         console.log("buildQueryParameters");
-        console.log(options.targets);
-        // options.targets = _.filter(options.targets, target => {
-        //     return target.target !== 'select metric';
-        // });
-        // options.targets = _.filter(options.targets, target => {
-        //     return target.devices !== 'select device';
-        // });
-        // options.targets = _.filter(options.targets, target => {
-        //     return target.sensors !== 'select sensor';
-        // });
+        options.targets = _.filter(options.targets, target => {
+            return (target.devices !== 'select device' && target.sensors !== 'select sensor');
+        });
 
         var targets = _.map(options.targets, target => {
             return {
                 devices: target.devices,
                 sensors: target.sensors,
+                dsType: 'tequini',
                 target: this.templateSrv.replace(target.devices + '.' + target.sensors),
                 refId: target.refId,
                 hide: target.hide,
                 type: target.type || 'timeserie'
             };
         });
-
         options.targets = targets;
-
+        console.log(options.targets);
         return options;
     }
 

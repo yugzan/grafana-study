@@ -4,7 +4,7 @@ export class TequiniDatasourceQueryCtrl extends QueryCtrl {
 
     constructor($scope, $injector, backendSrv, uiSegmentSrv) {
         super($scope, $injector);
-        
+
         this.scope = $scope;
         this.uiSegmentSrv = uiSegmentSrv;
         this.backendSrv = backendSrv;
@@ -15,22 +15,6 @@ export class TequiniDatasourceQueryCtrl extends QueryCtrl {
     }
 
     $onInit() {
-        // console.log(this.url);
-        var options = {
-            method: 'GET',
-            url: '/api/devices',
-            headers: {
-                'X-Auth-Username': 'admin',
-                'X-Auth-Password': 'pass',
-                'Content-Type': 'application/json'
-            }
-        };
-        // this.backendSrv.get( options ).then(res => {
-        //     console.log(res);
-        //     //this.scenarioList = res;
-        //     //this.scenario = _.find(this.scenarioList, { id: this.target.scenarioId });
-        // });
-
     }
 
     getSensorsOptions() {
