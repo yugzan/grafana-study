@@ -83,7 +83,7 @@ class TequiniDatasource {
             //var metrics = transformMetricData(response, options.targets[index], options.scopedVars);
             // result = result.concat(metrics);
             console.log(options.targets[index].devices + '.' + options.targets[index].sensors);
-            result.push(this.transformDataPoints(options.targets[index].devices + '.' + options.targets[index].sensors, response));
+            result.push(this.transformDataPoints(options.targets[index] , response));
         }.bind(this));
         // console.log({ data: result });
         return { data: result };
@@ -94,10 +94,10 @@ class TequiniDatasource {
         console.log(typeof data.resources[0].value);
         if (_.isObject(data.resources[0].value)) {
             _.each(data.resources, function(objset, index) {
-                datapoints.push([objset.value.chilled_water_flow, moment(objset.at).valueOf()]);
+                datapoints.push([  objset.value[target.valuekeys] , moment(objset.at).valueOf()]);
             });
             var tempModel = {
-                "target": target + ".chilled_water_flow", //opt.id  The field being queried for
+                "target": target.devices + "." + target.sensors  + "." + target.valuekeys, //opt.id  The field being queried for
                 "datapoints": datapoints
             };
         } else {
@@ -105,7 +105,7 @@ class TequiniDatasource {
                 datapoints.push([opt.value, moment(opt.at).valueOf()]);
             });
             var tempModel = {
-                "target": target, //opt.id  The field being queried for
+                "target": target.devices + "." + target.sensors, //opt.id  The field being queried for
                 "datapoints": datapoints
             };
         }
@@ -137,6 +137,21 @@ class TequiniDatasource {
     }
     metricFindQuery(options, query) {
         return this.backendSrv.datasourceRequest(query).then(this.mapResultsToTextValue);
+    }
+    metricLastValueKeysFindQuery(options){
+        console.log(this.url + '/api/devices/' + options.devices + '/sensors/' + options.sensors + '/data?maxResults=1');
+
+        var query = {
+            url: this.url + '/api/devices/' + options.devices + '/sensors/' + options.sensors + '/data?maxResults=1',
+            method: 'GET',
+            headers: {
+                'X-Auth-Username': this.user,
+                'X-Auth-Password': this.password,
+                'Content-Type': 'application/json'
+            }
+        };
+        //return this.metricFindQuery(options, query);
+        return this.backendSrv.datasourceRequest(query).then(this.mapLastValueKeysToTextValue);
     }
     metricSensorsFindQuery(options) {
         console.log(this.url + '/api/devices/' + options.devices);
@@ -174,6 +189,11 @@ class TequiniDatasource {
         };
         return this.metricFindQuery(options, query);
     }
+    mapLastValueKeysToTextValue(result) {
+        return _.map(result.data.resources[0].value, function(v, k) {
+            return { text: k , value: k };
+        });
+    }
     mapResultsToTextValue(result) {
         return _.map(result.data.resources, (opt) => {
             return { text: opt.id, value: opt.name };
@@ -190,6 +210,7 @@ class TequiniDatasource {
             return {
                 devices: target.devices,
                 sensors: target.sensors,
+                valuekeys:target.valuekeys,
                 dsType: 'tequini',
                 target: this.templateSrv.replace(target.devices + '.' + target.sensors),
                 refId: target.refId,
