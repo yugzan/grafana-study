@@ -8,13 +8,16 @@
         "description": "Tequini DataSource Plugin for Grafana",
         "author": {
             "name": "yugzan",
-            "url": "http://yugzan.io"
+            "url": "https://www.icellars.tw/tequini/"
         },
         "keywords": ["tequini", "datasource"],
         "version": "1.0.0",
         "updated": "2016-11-30"
     },
-
+    "logos": {
+      "small": "img/tequini-services.png",
+      "large": "img/tequini-services.png"
+    },
     "dependencies": {
         "grafanaVersion": "4.0.0",
         "plugins": []
